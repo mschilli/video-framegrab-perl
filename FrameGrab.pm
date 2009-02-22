@@ -1,5 +1,5 @@
 ###########################################
-package FrameGrab;
+package Video::FrameGrab;
 ###########################################
 
 use strict;
@@ -66,13 +66,13 @@ __END__
 
 =head1 NAME
 
-FrameGrab - Grab a frame from a video
+Video::FrameGrab - Grab a frame from a video
 
 =head1 SYNOPSIS
 
-    use FrameGrab;
+    use Video::FrameGrab;
 
-    my $grabber = FrameGrab->new();
+    my $grabber = Video::FrameGrab->new();
 
     my $jpg_data = $grabber->frame_grab( $avi_file, "00:00:10" );
 
@@ -80,8 +80,8 @@ FrameGrab - Grab a frame from a video
 
 =head1 DESCRIPTION
 
-FrameGrab grabs a frame at the specified point in time from the specified
-video file and returns its JPEG data.
+Video::FrameGrab grabs a frame at the specified point in time from the 
+specified video file and returns its JPEG data.
 
 It uses mplayer for the heavy lifting behind the scenes and therefore 
 requires it to be installed somewhere in the PATH.
