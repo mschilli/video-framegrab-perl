@@ -27,7 +27,8 @@ DESCRIPTION
   METHODS
     frame_grab( $file, $time )
         Grabs a frame from the movie at time $time. Time is given as
-        HH::MM::SS, just as mplayer likes it.
+        HH::MM::SS, just as mplayer likes it. Returns the raw jpeg data of
+        the captured frame on success and undef if an error occurs.
 
     jpeg_save( $file )
         Save a grabbed frame as a jpeg image in $file on disk.

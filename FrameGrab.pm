@@ -102,7 +102,8 @@ else, its location can be provided to the constructor:
 =item frame_grab( $file, $time )
 
 Grabs a frame from the movie at time $time. Time is given as HH::MM::SS,
-just as mplayer likes it.
+just as mplayer likes it. Returns the raw jpeg data of the captured frame
+on success and undef if an error occurs.
 
 =item jpeg_save( $file )
 
