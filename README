@@ -1,18 +1,25 @@
 ######################################################################
-    FrameGrab 0.01
+    Video::FrameGrab 0.01
 ######################################################################
 
 NAME
-    FrameGrab - blah blah blah
+    Video::FrameGrab - Grab a frame from a video
 
 SYNOPSIS
-        use FrameGrab;
+        use Video::FrameGrab;
+
+        my $grabber = Video::FrameGrab->new();
+
+        my $jpg_data = $grabber->frame_grab( $avi_file, "00:00:10" );
+
+        $grabber->jpeg_save("snapshot.jpg");
 
 DESCRIPTION
-    FrameGrab blah blah blah.
+    Video::FrameGrab grabs a frame at the specified point in time from the
+    specified video file and returns its JPEG data.
 
-EXAMPLES
-      $ perl -MFrameGrab -le 'print $foo'
+    It uses mplayer for the heavy lifting behind the scenes and therefore
+    requires it to be installed somewhere in the PATH.
 
 LEGALESE
     Copyright 2009 by Mike Schilli, all rights reserved. This program is
