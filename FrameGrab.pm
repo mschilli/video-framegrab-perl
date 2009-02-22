@@ -26,6 +26,10 @@ sub new {
         $self->{mplayer} = bin_find("mplayer"),
     }
 
+    if(! -x $self->{mplayer}) {
+        LOGDIE "Fatal error: Can't find mplayer";
+    }
+
     bless $self, $class;
 }
 
