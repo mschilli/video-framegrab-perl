@@ -5,7 +5,7 @@ package FrameGrab;
 use strict;
 use warnings;
 use Sysadm::Install qw(bin_find tap slurp blurt);
-use File::Temp (tempdir);
+use File::Temp qw(tempdir);
 use Log::Log4perl qw(:easy);
 Log::Log4perl->easy_init($DEBUG);
 
@@ -35,7 +35,7 @@ sub frame_grab {
     my($self, $video, $time) = @_;
 
     my($stdout, $stderr, $rc) = 
-        tap qw(mplayer -frames 1 -ss), $time, 
+        tap $self->{mplayer}, qw(-frames 1 -ss), $time, 
             "-vo", "jpeg:maxfiles=1:outdir=$self->{tmpdir}",
             $video;
 
@@ -44,12 +44,12 @@ sub frame_grab {
         return undef;
     }
 
-    $self->{jpeg} = slurp("$tmp_dir/00000001.jpg");
+    $self->{jpeg} = slurp("$self->{tmpdir}/00000001.jpg");
     return $self->{jpeg}
 }
 
 ###########################################
-sub jpg_save {
+sub jpeg_save {
 ###########################################
     my($self, $file) = @_;
 
