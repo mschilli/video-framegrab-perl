@@ -7,7 +7,6 @@ use warnings;
 use Sysadm::Install qw(bin_find tap slurp blurt);
 use File::Temp qw(tempdir);
 use Log::Log4perl qw(:easy);
-Log::Log4perl->easy_init($DEBUG);
 
 our $VERSION = "0.01";
 
@@ -26,7 +25,7 @@ sub new {
         $self->{mplayer} = bin_find("mplayer"),
     }
 
-    if(! -x $self->{mplayer}) {
+    if(!defined $self->{mplayer} or ! -x $self->{mplayer}) {
         LOGDIE "Fatal error: Can't find mplayer";
     }
 
@@ -44,6 +43,13 @@ sub frame_grab {
             $video;
 
     if($rc != 0) {
+        ERROR "$stderr";
+        return undef;
+    }
+
+    my $frame = "$self->{tmpdir}/00000001.jpg";
+
+    if(! -f $frame) {
         ERROR "$stderr";
         return undef;
     }
@@ -84,7 +90,25 @@ Video::FrameGrab grabs a frame at the specified point in time from the
 specified video file and returns its JPEG data.
 
 It uses mplayer for the heavy lifting behind the scenes and therefore 
-requires it to be installed somewhere in the PATH.
+requires it to be installed somewhere in the PATH. If mplayer is somewhere
+else, its location can be provided to the constructor:
+
+    my $grabber = Video::FrameGrab->new( mplayer => "/path/to/mplayer" );
+
+=head2 METHODS
+
+=over 4
+
+=item frame_grab( $file, $time )
+
+Grabs a frame from the movie at time $time. Time is given as HH::MM::SS,
+just as mplayer likes it.
+
+=item jpeg_save( $file )
+
+Save a grabbed frame as a jpeg image in $file on disk.
+
+=back
 
 =head1 LEGALESE
 
