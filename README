@@ -19,7 +19,18 @@ DESCRIPTION
     specified video file and returns its JPEG data.
 
     It uses mplayer for the heavy lifting behind the scenes and therefore
-    requires it to be installed somewhere in the PATH.
+    requires it to be installed somewhere in the PATH. If mplayer is
+    somewhere else, its location can be provided to the constructor:
+
+        my $grabber = Video::FrameGrab->new( mplayer => "/path/to/mplayer" );
+
+  METHODS
+    frame_grab( $file, $time )
+        Grabs a frame from the movie at time $time. Time is given as
+        HH::MM::SS, just as mplayer likes it.
+
+    jpeg_save( $file )
+        Save a grabbed frame as a jpeg image in $file on disk.
 
 LEGALESE
     Copyright 2009 by Mike Schilli, all rights reserved. This program is
