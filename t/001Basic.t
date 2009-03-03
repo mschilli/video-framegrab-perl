@@ -21,7 +21,7 @@ SKIP: {
     eval { $grabber = Video::FrameGrab->new(); };
 
     if($@ =~ /Can't find mplayer/) {
-        skip "Mplayer not installed -- skipping all tests", 1;
+        skip "Mplayer not installed -- skipping all tests", 2;
     }
 
     my $rc = $grabber->frame_grab("hula.avi", "00:00:10");

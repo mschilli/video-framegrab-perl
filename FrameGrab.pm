@@ -8,7 +8,7 @@ use Sysadm::Install qw(bin_find tap slurp blurt);
 use File::Temp qw(tempdir);
 use Log::Log4perl qw(:easy);
 
-our $VERSION = "0.01";
+our $VERSION = "0.02";
 
 ###########################################
 sub new {

@@ -1,5 +1,8 @@
 ######################################################################
 Revision history for Perl extension FrameGrab
 
+0.02  2009/03/03
+    (ms) Fixed skipped tests
+
 0.01  2009/02/21
-      * Where it all began.
+    (ms) Where it all began.
