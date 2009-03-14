@@ -1,5 +1,5 @@
 ######################################################################
-    Video::FrameGrab 0.02
+    Video::FrameGrab 0.03
 ######################################################################
 
 NAME
@@ -32,6 +32,23 @@ DESCRIPTION
 
     jpeg_save( $file )
         Save a grabbed frame as a jpeg image in $file on disk.
+
+    meta_data( $file )
+        Runs mplayer's identify() function and returns a reference to a hash
+        containing something like
+
+            demuxer          => MOV
+            video_format     => AVC1
+            video_bitrate    => 0
+            video_width      => 320
+            video_height     => 240
+            video_fps        => 29.970
+            video_aspect     => 0.0000
+            audio_format     => MP4A
+            audio_bitrate    => 0
+            audio_rate       => 48000
+            audio_nch        => 2
+            length           => 9515.94
 
 LEGALESE
     Copyright 2009 by Mike Schilli, all rights reserved. This program is
