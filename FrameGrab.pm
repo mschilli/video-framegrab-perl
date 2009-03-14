@@ -18,6 +18,7 @@ sub new {
     my $self = {
         mplayer => undef,
         tmpdir  => tempdir(CLEANUP => 1),
+        meta    => undef,
         %options,
     };
 
@@ -59,11 +60,42 @@ sub frame_grab {
 }
 
 ###########################################
+sub jpeg_data {
+###########################################
+    my($self) = @_;
+    return $self->{jpeg};
+}
+
+###########################################
 sub jpeg_save {
 ###########################################
     my($self, $file) = @_;
 
     blurt $self->{jpeg}, $file;
+}
+
+###########################################
+sub meta_data {
+###########################################
+    my($self, $video) = @_;
+
+    my($stdout, $stderr, $rc) = 
+        tap $self->{mplayer}, 
+            qw(-vo null -ao null -frames 0 -identify), 
+            $video;
+
+    if($rc != 0) {
+        ERROR "$stderr";
+        return undef;
+    }
+
+    $self->{meta} = {};
+
+    while($stdout =~ /^ID_(.*?)=(.*)/mg) {
+        $self->{meta}->{ lc($1) } = $2;
+    }
+
+    return $self->{meta};
 }
 
 1;
@@ -108,6 +140,24 @@ on success and undef if an error occurs.
 =item jpeg_save( $file )
 
 Save a grabbed frame as a jpeg image in $file on disk.
+
+=item meta_data( $file )
+
+Runs mplayer's identify() function and returns a reference to a hash
+containing something like
+
+    demuxer          => MOV
+    video_format     => AVC1
+    video_bitrate    => 0
+    video_width      => 320
+    video_height     => 240
+    video_fps        => 29.970
+    video_aspect     => 0.0000
+    audio_format     => MP4A
+    audio_bitrate    => 0
+    audio_rate       => 48000
+    audio_nch        => 2
+    length           => 9515.94
 
 =back
 

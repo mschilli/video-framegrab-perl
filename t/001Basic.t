@@ -9,7 +9,11 @@ use Test::More;
 use Sysadm::Install qw(slurp);
 use File::Temp qw(tempfile);
 use Log::Log4perl qw(:easy);
-plan tests => 2;
+plan tests => 4;
+
+my $canned = "canned";
+$canned = "t/canned" unless -d $canned;
+my $video = "$canned/plane.avi";
 
 use Video::FrameGrab;
 
@@ -21,7 +25,7 @@ SKIP: {
     eval { $grabber = Video::FrameGrab->new(); };
 
     if($@ =~ /Can't find mplayer/) {
-        skip "Mplayer not installed -- skipping all tests", 2;
+        skip "Mplayer not installed -- skipping all tests", 4;
     }
 
     my $rc = $grabber->frame_grab("hula.avi", "00:00:10");
@@ -30,4 +34,9 @@ SKIP: {
     my($fh, $file) = tempfile(UNLINK => 1);
     $rc = $grabber->frame_grab($file, "00:00:10");
     ok(!$rc, "frame from empty file");
+
+    # Test video
+    my $meta = $grabber->meta_data( $video );
+    is($meta->{"length"}, "1.00", "meta data length");
+    is($meta->{video_bitrate}, "733360", "meta data bitrate");
 };
