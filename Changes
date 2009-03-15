@@ -1,6 +1,9 @@
 ######################################################################
 Revision history for Perl extension FrameGrab
 
+0.04  2009/03/15
+    (ms) Added cropdect, cropdetect_average.
+
 0.03  2009/03/14
     (ms) Added meta_data().
     (ms) Added equidistant_snap_times().
