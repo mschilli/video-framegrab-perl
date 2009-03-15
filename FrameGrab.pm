@@ -312,7 +312,7 @@ containing something like
     audio_nch        => 2
     length           => 9515.94
 
-=item equidistant_snap_times( $howmany )
+=item equidistant_snap_times( $howmany, [$movie_length] )
 
 If you want to snap N frames at constant intervals throughout the movie,
 use equidistant_snap_times( $n ) to get a list of timestamps you can use
@@ -325,7 +325,11 @@ equidistant_snap_times( 5 ) will return
     01:20:00
     01:40:00
 
-as a list of strings. 
+as a list of strings. The movie length is determined by a call to meta
+data, but some formats don't allow retrieving the movie length that way,
+therefore the optional parameter $movie_length lets you specify the
+length of the movie (or the length of the overall interval to perform
+the snapshots in) in seconds.
 
 =item cropdetect( $time )
 
@@ -341,11 +345,12 @@ the equidistant_snap_times method described above), the result
 is fairly accurate. C<cropdetect_average>, described below, does exactly 
 that.
 
-=item cropdetect_average( $number_of_probes )
+=item cropdetect_average( $number_of_probes, [$movie_length] )
 
 Takes C<$number_of_probes> from the movie at equidistant intervals,
 runs C<cropdetect> on them and returns a result computed by 
 majority decision over all probes (ties are broken randomly).
+See C<equidistant_snap_times> for the optional C<$movie_length> parameter.
 
 =head1 CAVEATS
 
