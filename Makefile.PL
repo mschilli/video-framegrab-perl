@@ -9,7 +9,10 @@ WriteMakefile(
     'EXE_FILES'    => ['eg/video-framegrab'],
     'PREREQ_PM'    => {
         Sysadm::Install => "0.17",
+        Log::Log4perl   => "1.0",
         File::Temp      => undef,
+        DateTime        => 0.47,
+        DateTime::Format::Duration => 1.03,
     }, # e.g., Module::Name => 1.1
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'FrameGrab.pm',
