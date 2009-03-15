@@ -221,7 +221,7 @@ sub equidistant_snap_times {
     my $length = $self->{meta}->{length};
     $length = $movie_length if defined $movie_length;
 
-    my $interval = $self->{meta}->{length} / ($nof_snaps + 1.0);
+    my $interval = $length / ($nof_snaps + 1.0);
     my $interval_seconds     = int( $interval );
 
     my $dur   = DateTime::Duration->new(seconds => $interval_seconds);
