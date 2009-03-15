@@ -3,16 +3,25 @@
 ######################################################################
 
 NAME
-    Video::FrameGrab - Grab a frame from a video
+    Video::FrameGrab - Grab a frame or metadata from a video
 
 SYNOPSIS
         use Video::FrameGrab;
 
-        my $grabber = Video::FrameGrab->new();
+        my $grabber = Video::FrameGrab->new( video => "movie.avi" );
 
-        my $jpg_data = $grabber->frame_grab( $avi_file, "00:00:10" );
-
+        my $jpg_data = $grabber->snap( "00:00:10" );
         $grabber->jpeg_save("snapshot.jpg");
+
+        print "This movie is ", 
+              $grabber->meta_data()->{length}, 
+              " seconds long\n";
+
+          # Snap 10 frames at constant intervals throughout the movie
+        for my $p ( $grabber->equidistant_snap_times(10) ) {
+            $grabber->snap( $p );
+            $grabber->jpeg_save("frame-at-$p.jpg");
+        }
 
 DESCRIPTION
     Video::FrameGrab grabs a frame at the specified point in time from the
@@ -22,18 +31,20 @@ DESCRIPTION
     requires it to be installed somewhere in the PATH. If mplayer is
     somewhere else, its location can be provided to the constructor:
 
-        my $grabber = Video::FrameGrab->new( mplayer => "/path/to/mplayer" );
+        my $grabber = Video::FrameGrab->new( mplayer => "/path/to/mplayer",
+                                             video   => "movie.avi"
+                                           );
 
   METHODS
-    frame_grab( $file, $time )
+    snap( $time )
         Grabs a frame from the movie at time $time. Time is given as
         HH::MM::SS, just as mplayer likes it. Returns the raw jpeg data of
         the captured frame on success and undef if an error occurs.
 
-    jpeg_save( $file )
+    jpeg_save( $jpg_file_name )
         Save a grabbed frame as a jpeg image in $file on disk.
 
-    meta_data( $file )
+    meta_data()
         Runs mplayer's identify() function and returns a reference to a hash
         containing something like
 
@@ -49,6 +60,25 @@ DESCRIPTION
             audio_rate       => 48000
             audio_nch        => 2
             length           => 9515.94
+
+    equidistant_snap_times( $howmany )
+        If you want to snap N frames at constant intervals throughout the
+        movie, use equidistant_snap_times( $n ) to get a list of timestamps
+        you can use later pass to snap(). For example, on a two hour movie,
+        equidistant_snap_times( 5 ) will return
+
+            00:20:00
+            00:40:00
+            01:00:00
+            01:20:00
+            01:40:00
+
+        as a list of strings.
+
+CAVEATS
+        Note that the mplayer-based frame grabbing mechanism used in this
+        module allows you to snap a picture about every 10 seconds into the
+        movie, on shorter intervals, you'll get the same frame back.
 
 LEGALESE
     Copyright 2009 by Mike Schilli, all rights reserved. This program is
