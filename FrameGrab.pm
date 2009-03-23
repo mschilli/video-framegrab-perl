@@ -9,10 +9,11 @@ use File::Temp qw(tempdir);
 use DateTime;
 use DateTime::Duration;
 use DateTime::Format::Duration;
+use Imager;
 
 use Log::Log4perl qw(:easy);
 
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 
 ###########################################
 sub new {
@@ -20,10 +21,12 @@ sub new {
     my($class, %options) = @_;
 
     my $self = {
-        mplayer => undef,
-        tmpdir  => tempdir(CLEANUP => 1),
-        meta    => undef,
-        video   => undef,
+        mplayer   => undef,
+        tmpdir    => tempdir(CLEANUP => 1),
+        meta      => undef,
+        video     => undef,
+        aspects   => ['16:9', '4:3'],
+        test_dont_snap => 0,
         %options,
     };
 
@@ -52,6 +55,11 @@ sub snap {
 sub frame_grab {
 ###########################################
     my($self, $time) = @_;
+
+    if($self->{test_dont_snap}) {
+        INFO "Test mode, no snap";
+        return $self->{jpeg_data};
+    }
 
     my $tmpdir = $self->{tmpdir};
 
@@ -84,11 +92,110 @@ sub frame_grab {
 ###########################################
 sub cropdetect {
 ###########################################
-    my($self, $time) = @_;
+    my($self, $time, $opts) = @_;
 
     if(!defined $time) {
         LOGDIE "Missing parameter: time";
     }
+
+    $opts = {} unless defined $opts;
+    $opts->{algorithm} = "schilli" unless exists $opts->{algorithm};
+
+    my $algo = $opts->{algorithm};
+
+    my $method = "cropdetect_$algo";
+
+    return $self->$method( $time, $opts );
+}
+
+###########################################
+sub cropdetect_schilli {
+###########################################
+    my($self, $time, $opts) = @_;
+
+    $opts = {} unless defined $opts;
+    $opts->{min_intensity_average} = 20 unless 
+        exists $opts->{min_intensity_average};
+    $opts->{gaussian_blur_radius} = 3 unless 
+        exists $opts->{gaussian_blur_radius};
+
+    my $data = $self->snap( $time );
+    my $img = Imager->new();
+    my $rc = $img->read( data => $data );
+
+    $img->filter( type => "gaussian", 
+                  stddev => $opts->{gaussian_blur_radius} );
+
+    my($width, $height) = $self->dimensions();
+
+    my $borders = {};
+
+    for my $traverse (
+                       ["upper", 0,0,1,0,0,1],
+                       ["left", 0,0,0,1,1,0],
+                       ["right", $width-1, 0, 0, 1, -1, 0],
+                       ["lower", 0, $height-1, 1, 0, 0, -1],
+                     ) {
+
+        my($trav_name, $x, $y, $dx, $dy, $mdx, $mdy) = @$traverse;
+        my $border_width = 0;
+
+        while($x < $width and $y < $height) {
+            my $avg = $self->intensity_average( 
+                    $img, $width, $height, $x, $y, $dx, $dy );
+
+            DEBUG "Intensity[$trav_name,$x,$y]: $avg";
+
+            if($avg < $opts->{min_intensity_average}) {
+                $border_width++;
+                $x += $mdx;
+                $y += $mdy;
+                next;
+            }
+
+            DEBUG "Border[$trav_name]: $border_width";
+            $borders->{$trav_name} = $border_width;
+            last;
+        }
+    }
+
+    my $cw = $width - $borders->{left} - $borders->{right};
+    my $ch = $height - $borders->{upper} - $borders->{lower};
+    my $cx = $borders->{left};
+    my $cy = $borders->{upper};
+
+    DEBUG "Crop detect: $cw, $ch, $cx, $cy";
+    return ($cw, $ch, $cx, $cy);
+}
+
+###########################################
+sub intensity_average {
+###########################################
+    my($self, $img, $width, $height, $x, $y, $dx, $dy) = @_;
+
+    my $intensity   = 0;
+    my $data_points = 0;
+
+    while($x < $width and $y < $height) {
+        my $color = $img->getpixel( x => $x,
+            y => $y );
+
+        my @comps = $color->rgba();
+
+        $intensity += ($comps[0] + $comps[1] + $comps[2]) / 3.0;
+        $data_points++;
+
+        $x += $dx;
+        $y += $dy;
+    }
+
+    return int(1.0*$intensity/$data_points);
+}
+
+###########################################
+sub cropdetect_mplayer {
+###########################################
+    my($self, $time) = @_;
 
     my($stdout, $stderr, $rc) = 
         tap $self->{mplayer}, qw(-vf cropdetect -ss), $time, 
@@ -111,13 +218,16 @@ sub cropdetect {
 ###########################################
 sub cropdetect_average {
 ###########################################
-    my($self, $nof_probes, $movie_length) = @_;
+    my($self, $nof_probes, $opts) = @_;
+
+    $opts = {} unless defined $opts;
 
     $self->result_clear();
 
     for my $probe ( 
-          $self->equidistant_snap_times( $nof_probes, $movie_length ) ) {
-        my @params = $self->cropdetect( $probe );
+          $self->equidistant_snap_times( $nof_probes, 
+                                         $opts->{movie_length} ) ) {
+        my @params = $self->cropdetect( $probe, $opts );
         if(! defined $params[0] ) {
             ERROR "cropdetect returned an error";
             next;
@@ -206,7 +316,9 @@ sub meta_data {
 ###########################################
 sub equidistant_snap_times {
 ###########################################
-    my($self, $nof_snaps, $movie_length) = @_;
+    my($self, $nof_snaps, $opts) = @_;
+
+    $opts = {} unless defined $opts;
 
     if(! defined $nof_snaps) {
         LOGDIE "Parameter missing: nof_snaps";
@@ -219,7 +331,7 @@ sub equidistant_snap_times {
     }
 
     my $length = $self->{meta}->{length};
-    $length = $movie_length if defined $movie_length;
+    $length = $opts->{movie_length} if defined $opts->{movie_length};
 
     my $interval = $length / ($nof_snaps + 1.0);
     my $interval_seconds     = int( $interval );
@@ -238,6 +350,63 @@ sub equidistant_snap_times {
     }
 
     return @stamps;
+}
+
+###########################################
+sub dimensions {
+###########################################
+    my($self) = @_;
+
+    if(defined $self->{width}) {
+        return ($self->{width}, $self->{height});
+    }
+
+    my $time = "00:00:01";
+
+    my $data = $self->frame_grab( $time );
+    my $img = Imager->new();
+    my $rc = $img->read( data => $data );
+
+    my $width  = $img->getwidth();
+    my $height = $img->getheight();
+
+    $self->{width}  = $width;
+    $self->{height} = $height;
+
+    return($width, $height);
+}
+
+###########################################
+sub aspect_ratio_guess {
+###########################################
+    my($self, $formats) = @_;
+
+    if(! defined $formats) {
+        $formats = $self->{aspects};
+    }
+
+    my($width, $height) = $self->dimensions();
+
+    if(!$width or !$height) {
+        ERROR "Can't get image dimensions data for width/height";
+        return undef;
+    }
+
+    my %matches = ();
+
+    for my $format (@$formats) {
+        my($fw, $fh) = split /:/, $format;
+        my $factor = 1.0*$width/$fw;
+        my $fhguess = 1.0*$height/$factor;
+
+        my $deviate = abs($fh-$fhguess)/$fh*100.0;
+        INFO "$format deviates from $width:$height ", 
+             sprintf("%.2f", $deviate), "%";
+        
+        $matches{ $format } = $deviate;
+    }
+
+    return (sort { $matches{$a} <=> $matches{$b} } keys %matches)[0];
 }
 
 1;
@@ -312,7 +481,7 @@ containing something like
     audio_nch        => 2
     length           => 9515.94
 
-=item equidistant_snap_times( $howmany, [$movie_length] )
+=item equidistant_snap_times( $howmany, [$opts] )
 
 If you want to snap N frames at constant intervals throughout the movie,
 use equidistant_snap_times( $n ) to get a list of timestamps you can use
@@ -327,17 +496,28 @@ equidistant_snap_times( 5 ) will return
 
 as a list of strings. The movie length is determined by a call to meta
 data, but some formats don't allow retrieving the movie length that way,
-therefore the optional parameter $movie_length lets you specify the
-length of the movie (or the length of the overall interval to perform
+therefore the optional options hash can set the movie_length entry
+to the movie length (or the length of the overall interval to perform
 the snapshots in) in seconds.
 
-=item cropdetect( $time )
+    my @times =
+      $fg->equidistant_snap_times( $howmany, { movie_length => 3600 } );
 
-Asks mplayer to come up with a recommendation on how to crop the video.
+=item cropdetect( $time, [$opts] )
+
 If this is a 16:9 movie converted to 4:3 format, the black bars at the bottom
-and the top of the screen should be cropped out and C<cropdetect> will
-return a list of ($width, $height, $x, $y) to be passed to mplayer/mencoder
-in the form C<-vf crop=w:h:x:y> to accomplish the suggested cropping.
+and the top of the screen should be cropped out. To help with this task,
+C<cropdetect> will return a list of ($width, $height, $x, $y) to be passed 
+to mplayer/mencoder in the form C<-vf crop=w:h:x:y> to accomplish the 
+suggested cropping.
+
+The default algorithm is a homegrown detection mechanism 
+C<{algorithm =E<gt> "schilli"}>, which first blurs the 
+image with the Gaussian Blur algorithm with a radius of
+C<$opts-E<gt>{gaussian_blur_radius}> (which defaults to 3),
+and then measures if any of the left, right, upper or lower border
+pixel lines of the snapped frame average an intensity of less than 
+C<$opts-E<gt>{min_intensity_average}>, which defaults to 20.
 
 Note that this is just a guess and might be incorrect at times, but
 if you repeat it at several times during the movie (e.g. by using
@@ -345,12 +525,35 @@ the equidistant_snap_times method described above), the result
 is fairly accurate. C<cropdetect_average>, described below, does exactly 
 that.
 
-=item cropdetect_average( $number_of_probes, [$movie_length] )
+The alternative algorithm, C<"mplayer">,
+asks mplayer to come up with a recommendation on how to crop the video.
+This technique delivers incorrect results if there are sporadic white
+spots within the dark bars.
+
+=item cropdetect_average( $number_of_probes, [$opts] )
 
 Takes C<$number_of_probes> from the movie at equidistant intervals,
 runs C<cropdetect> on them and returns a result computed by 
 majority decision over all probes (ties are broken randomly).
-See C<equidistant_snap_times> for the optional C<$movie_length> parameter.
+
+See C<equidistant_snap_times> for setting the movie length in
+the optional C<$opts> parameter.
+
+=item aspect_ratio_guess( ["16:9", "4:3"] )
+
+This function will take the width and height of the video and 
+map it to the best matching aspect ratio given in a reference
+to an array.
+
+=item dimensions()
+
+Snaps a frame in the middle of the movie, determines its width and
+height and returns them in a list:
+
+    my($width, $height) = $grabber->dimensions();
+
+Dimensions are usually also available via the meta_data() call. 
+dimensions() works even in absence of meta data.
 
 =head1 CAVEATS
 
