@@ -128,23 +128,23 @@ sub cropdetect_schilli {
 
     my($width, $height) = $self->dimensions();
 
-    my $borders = {};
+    my $borders = { left => 0, right => 0, lower => 0, upper => 0 };
 
     for my $traverse (
-                       ["upper", 0,0,1,0,0,1],
-                       ["left", 0,0,0,1,1,0],
-                       ["right", $width-1, 0, 0, 1, -1, 0],
-                       ["lower", 0, $height-1, 1, 0, 0, -1],
+                       ["upper", 0,        0,         1, 0,  0,  1],
+                       ["left",  0,        0,         0, 1,  1,  0],
+                       ["right", $width-1, 0,         0, 1, -1,  0],
+                       ["lower", 0,        $height-1, 1, 0,  0, -1],
                      ) {
 
         my($trav_name, $x, $y, $dx, $dy, $mdx, $mdy) = @$traverse;
         my $border_width = 0;
 
-        while($x < $width and $y < $height) {
+        while($x < $width and $x >= 0 and $y >= 0 and $y < $height) {
             my $avg = $self->intensity_average( 
                     $img, $width, $height, $x, $y, $dx, $dy );
 
-            DEBUG "Intensity[$trav_name,$x,$y]: $avg";
+            TRACE "Intensity[$trav_name,$x,$y]: $avg";
 
             if($avg < $opts->{min_intensity_average}) {
                 $border_width++;
@@ -153,10 +153,11 @@ sub cropdetect_schilli {
                 next;
             }
 
-            DEBUG "Border[$trav_name]: $border_width";
-            $borders->{$trav_name} = $border_width;
             last;
         }
+
+        DEBUG "Border[$trav_name]: $border_width";
+        $borders->{$trav_name} = $border_width;
     }
 
     my $cw = $width - $borders->{left} - $borders->{right};
@@ -173,12 +174,17 @@ sub intensity_average {
 ###########################################
     my($self, $img, $width, $height, $x, $y, $dx, $dy) = @_;
 
+    DEBUG "intensity_average: $width, $height, $x, $y, $dx, $dy";
+
     my $intensity   = 0;
     my $data_points = 0;
 
-    while($x < $width and $y < $height) {
-        my $color = $img->getpixel( x => $x,
-            y => $y );
+    while($x < $width and $x >= 0 and $y >= 0 and $y < $height) {
+        my $color = $img->getpixel( x => $x, y => $y );
+
+        if(! defined $color) {
+            LOGDIE "Failed to obtain pixel $x/$y";
+        }
 
         my @comps = $color->rgba();
 
@@ -188,6 +194,8 @@ sub intensity_average {
         $x += $dx;
         $y += $dy;
     }
+
+    return 0 if $data_points == 0;
 
     return int(1.0*$intensity/$data_points);
 }
@@ -226,7 +234,7 @@ sub cropdetect_average {
 
     for my $probe ( 
           $self->equidistant_snap_times( $nof_probes, 
-                                         $opts->{movie_length} ) ) {
+                                         $opts ) ) {
         my @params = $self->cropdetect( $probe, $opts );
         if(! defined $params[0] ) {
             ERROR "cropdetect returned an error";
