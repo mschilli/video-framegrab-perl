@@ -1,6 +1,8 @@
 ######################################################################
 Revision history for Perl extension FrameGrab
 
+TODO: eliminate small black border left/top
+
 0.05  (2009/03/22)
     (ms) Added aspect_ratio_guess.
     (ms) Added dimensions() to determine width/height in absense of
