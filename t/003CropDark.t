@@ -9,6 +9,9 @@ use Test::More;
 use Sysadm::Install qw(slurp);
 use File::Temp qw(tempfile);
 use Log::Log4perl qw(:easy);
+use Log::Log4perl qw(:easy);
+
+#Log::Log4perl->easy_init($TRACE);
 
 my $nof_tests = 8;
 plan tests => $nof_tests;
@@ -64,4 +67,14 @@ SKIP: {
     is($crop[2], 0, "crop x");
     is($crop[3], 56, "crop y");
 
+    my $testimg = "$canned/croptest-dark.jpg";
+    my $img = Imager->new();
+    $img->read( file => $testimg );
+    my $cropped = $img->crop(
+        width  => $crop[0],
+        height => $crop[1],
+        left   => $crop[2],
+        top    => $crop[3],
+    );
+    $cropped->write( file => "cropped.jpg" );
 };

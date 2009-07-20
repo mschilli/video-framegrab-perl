@@ -114,8 +114,10 @@ sub cropdetect_schilli {
     my($self, $time, $opts) = @_;
 
     $opts = {} unless defined $opts;
+
     $opts->{min_intensity_average} = 20 unless 
         exists $opts->{min_intensity_average};
+
     $opts->{gaussian_blur_radius} = 3 unless 
         exists $opts->{gaussian_blur_radius};
 
@@ -276,6 +278,9 @@ sub cropdetect_average {
         $overlay->write(file => "i-$i.jpg");
         $i++;
     }
+
+    $overlay->filter(type=>"postlevels", levels=>3) or
+        die $overlay->errstr;
 
     my @params = $self->cropdetect( 0, { image => $overlay } );
 
