@@ -254,7 +254,7 @@ sub cropdetect_average {
                 $opts ) ) {
 
             my $data = $self->snap( $probe );
-            my $img = Imager->new(channels => 4);
+            my $img = Imager->new();
             my $rc = $img->read( data => $data );
             die "Reading snapshop at time $probe failed ($!)" unless $rc;
             push @images, $img;
@@ -275,12 +275,12 @@ sub cropdetect_average {
             next;
         }
         $overlay->compose( src => $img, combine => 'add' );
+        $overlay->filter(type=>"postlevels", levels=>3) or
+            die $overlay->errstr;
+
         $overlay->write(file => "i-$i.jpg");
         $i++;
     }
-
-    $overlay->filter(type=>"postlevels", levels=>3) or
-        die $overlay->errstr;
 
     my @params = $self->cropdetect( 0, { image => $overlay } );
 
