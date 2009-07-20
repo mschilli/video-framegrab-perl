@@ -256,7 +256,10 @@ sub cropdetect_average {
             my $data = $self->snap( $probe );
             my $img = Imager->new();
             my $rc = $img->read( data => $data );
-            die "Reading snapshop at time $probe failed ($!)" unless $rc;
+            if(! $rc) {
+                LOGWARN "Reading snapshop at time $probe failed ($!)";
+                next;
+            }
             push @images, $img;
         }
     }
