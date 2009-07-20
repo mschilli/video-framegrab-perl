@@ -13,7 +13,7 @@ use Imager;
 
 use Log::Log4perl qw(:easy);
 
-our $VERSION = "0.05";
+our $VERSION = "0.06";
 
 ###########################################
 sub new {
@@ -119,14 +119,22 @@ sub cropdetect_schilli {
     $opts->{gaussian_blur_radius} = 3 unless 
         exists $opts->{gaussian_blur_radius};
 
-    my $data = $self->snap( $time );
-    my $img = Imager->new();
-    my $rc = $img->read( data => $data );
+    my $img;
+
+    if(exists $opts->{image}) {
+        $img = $opts->{image};
+    } else {
+        my $data = $self->snap( $time );
+        $img = Imager->new();
+        my $rc = $img->read( data => $data );
+        die $img->errstr() unless $rc;
+    }
 
     $img->filter( type => "gaussian", 
                   stddev => $opts->{gaussian_blur_radius} );
 
-    my($width, $height) = $self->dimensions();
+    my $width  = $img->getwidth();
+    my $height = $img->getheight();
 
     my $borders = { left => 0, right => 0, lower => 0, upper => 0 };
 
@@ -232,21 +240,60 @@ sub cropdetect_average {
 
     $self->result_clear();
 
-    for my $probe ( 
-          $self->equidistant_snap_times( $nof_probes, 
-                                         $opts ) ) {
-        my @params = $self->cropdetect( $probe, $opts );
-        if(! defined $params[0] ) {
-            ERROR "cropdetect returned an error";
-            next;
+    my @images = ();
+
+    if(exists $opts->{images}) {
+        for my $img (@{ $opts->{images} }) {
+            push @images, $img;
         }
-        DEBUG "Cropdetect at $probe yielded (@params)";
-        $self->result_push( @params );
+    } else {
+        for my $probe ( 
+            $self->equidistant_snap_times( $nof_probes, 
+                $opts ) ) {
+
+            my $data = $self->snap( $probe );
+            my $img = Imager->new(channels => 4);
+            my $rc = $img->read( data => $data );
+            die "Reading snapshop at time $probe failed ($!)" unless $rc;
+            push @images, $img;
+        }
     }
 
-    my @result = $self->result_majority_decision();
-    DEBUG "Majority decision: (@result)";
-    return @result;
+    # average all snapshots to obtain a single overlay image
+    my $overlay;
+
+    my $i = 1;
+
+    for my $img (@images) {
+        $img->filter(type=>"gaussian", stddev=>10)
+               or die $overlay->errstr;
+
+        if(! defined $overlay) {
+            $overlay = $img;
+            next;
+        }
+        $overlay->compose( src => $img, combine => 'add' );
+        $overlay->write(file => "i-$i.jpg");
+        $i++;
+    }
+
+    my @params = $self->cropdetect( 0, { image => $overlay } );
+
+    return @params;
+
+#        my @params = $self->cropdetect( $probe, $opts );
+#        if(! defined $params[0] ) {
+#            ERROR "cropdetect returned an error";
+#            next;
+#        }
+#        DEBUG "Cropdetect at $probe yielded (@params)";
+#        $self->result_push( @params );
+#    }
+#
+#    my @result = $self->result_majority_decision();
+#    DEBUG "Majority decision: (@result)";
+#    return @result;
+
 }
 
 ###########################################
@@ -527,11 +574,13 @@ and then measures if any of the left, right, upper or lower border
 pixel lines of the snapped frame average an intensity of less than 
 C<$opts-E<gt>{min_intensity_average}>, which defaults to 20.
 
-Note that this is just a guess and might be incorrect at times, but
-if you repeat it at several times during the movie (e.g. by using
+Note that this is just a guess and might be incorrect at times. In a
+dark scene, black pixels might protrude far into the video, making it
+impossible to detect the border reliably. However, if you overlay a number
+of frames, obtained at several times during the movie (e.g. by using
 the equidistant_snap_times method described above), the result
-is fairly accurate. C<cropdetect_average>, described below, does exactly 
-that.
+is fairly predicatblye and accurate. C<cropdetect_average>, 
+described below, does exactly that.
 
 The alternative algorithm, C<"mplayer">,
 asks mplayer to come up with a recommendation on how to crop the video.
@@ -541,8 +590,8 @@ spots within the dark bars.
 =item cropdetect_average( $number_of_probes, [$opts] )
 
 Takes C<$number_of_probes> from the movie at equidistant intervals,
-runs C<cropdetect> on them and returns a result computed by 
-majority decision over all probes (ties are broken randomly).
+overlays the frames and performs a border detection on the resulting
+images, which is almost white in the viewing area.
 
 See C<equidistant_snap_times> for setting the movie length in
 the optional C<$opts> parameter.

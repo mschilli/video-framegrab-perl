@@ -10,7 +10,7 @@ use Sysadm::Install qw(slurp);
 use File::Temp qw(tempfile);
 use Log::Log4perl qw(:easy);
 
-my $nof_tests = 4;
+my $nof_tests = 8;
 plan tests => $nof_tests;
 
 my $canned = "canned";
@@ -42,4 +42,26 @@ SKIP: {
     is($crop[1], 364, "crop h");
     is($crop[2], 0, "crop x");
     is($crop[3], 56, "crop y");
+
+    my @images;
+
+    for my $file (map { "$canned/croptest-$_.jpg" } qw(dark black 
+                                                       black white1 
+                                                       white2)) {
+        my $img = Imager->new(channels => 4);
+        $img->read( file => $file );
+        push @images, $img;
+    }
+
+    $grabber = Video::FrameGrab->new( 
+        video => "schtonk",
+        test_dont_snap => 1,
+    );
+    @crop = $grabber->cropdetect_average( -1, { images => \@images });
+
+    is($crop[0], 352, "crop w");
+    is($crop[1], 364, "crop h");
+    is($crop[2], 0, "crop x");
+    is($crop[3], 56, "crop y");
+
 };
