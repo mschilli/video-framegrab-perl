@@ -76,7 +76,7 @@ SKIP: {
         left   => $crop[2],
         top    => $crop[3],
     );
-    if(get_logger->is_debug) {
+    if(get_logger->is_trace) {
         $cropped->write( file => "cropped.jpg" );
     }
 };

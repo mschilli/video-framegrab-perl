@@ -1,5 +1,5 @@
 ######################################################################
-    Video::FrameGrab 0.05
+    Video::FrameGrab 0.06
 ######################################################################
 
 NAME
@@ -97,11 +97,13 @@ DESCRIPTION
         intensity of less than "$opts->{min_intensity_average}", which
         defaults to 20.
 
-        Note that this is just a guess and might be incorrect at times, but
-        if you repeat it at several times during the movie (e.g. by using
-        the equidistant_snap_times method described above), the result is
-        fairly accurate. "cropdetect_average", described below, does exactly
-        that.
+        Note that this is just a guess and might be incorrect at times. In a
+        dark scene, black pixels might protrude far into the video, making
+        it impossible to detect the border reliably. However, if you overlay
+        a number of frames, obtained at several times during the movie (e.g.
+        by using the equidistant_snap_times method described above), the
+        result is fairly predicatblye and accurate. "cropdetect_average",
+        described below, does exactly that.
 
         The alternative algorithm, "mplayer", asks mplayer to come up with a
         recommendation on how to crop the video. This technique delivers
@@ -110,8 +112,8 @@ DESCRIPTION
 
     cropdetect_average( $number_of_probes, [$opts] )
         Takes $number_of_probes from the movie at equidistant intervals,
-        runs "cropdetect" on them and returns a result computed by majority
-        decision over all probes (ties are broken randomly).
+        overlays the frames and performs a border detection on the resulting
+        images, which is almost white in the viewing area.
 
         See "equidistant_snap_times" for setting the movie length in the
         optional $opts parameter.
