@@ -278,7 +278,9 @@ sub cropdetect_average {
         $overlay->filter(type=>"postlevels", levels=>3) or
             die $overlay->errstr;
 
-        $overlay->write(file => "i-$i.jpg");
+        if(get_logger()->is_debug()) {
+            $overlay->write(file => "i-$i.jpg");
+        }
         $i++;
     }
 

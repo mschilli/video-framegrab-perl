@@ -63,9 +63,9 @@ SKIP: {
     @crop = $grabber->cropdetect_average( -1, { images => \@images });
 
     is($crop[0], 352, "crop w");
-    is($crop[1], 364, "crop h");
+    is($crop[1], 369, "crop h");
     is($crop[2], 0, "crop x");
-    is($crop[3], 56, "crop y");
+    is($crop[3], 53, "crop y");
 
     my $testimg = "$canned/croptest-dark.jpg";
     my $img = Imager->new();
@@ -76,5 +76,7 @@ SKIP: {
         left   => $crop[2],
         top    => $crop[3],
     );
-    $cropped->write( file => "cropped.jpg" );
+    if(get_logger->is_debug) {
+        $cropped->write( file => "cropped.jpg" );
+    }
 };
