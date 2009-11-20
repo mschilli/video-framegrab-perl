@@ -1,6 +1,9 @@
 ######################################################################
 Revision history for Perl extension FrameGrab
 
+0.08  (not yet released)
+    (ms) Added github repository link to Makefile.PL
+
 0.07  (2009/10/04)
     (ms) Warning now if a frame can't be read instead of dying.
     (ms) Added missing Imager dependency (reported by Andreas König).

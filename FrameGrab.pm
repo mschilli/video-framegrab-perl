@@ -13,7 +13,7 @@ use Imager;
 
 use Log::Log4perl qw(:easy);
 
-our $VERSION = "0.07";
+our $VERSION = "0.08";
 
 ###########################################
 sub new {
